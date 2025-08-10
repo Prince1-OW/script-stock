@@ -1,8 +1,13 @@
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import DataTable from "@/components/common/DataTable";
+import { useProducts } from "@/hooks/useProducts";
+import { formatDate } from "@/utils/formatDate";
 
 const Inventory = () => {
+  const { data = [], isLoading } = useProducts();
+
   return (
     <div>
       <Helmet>
@@ -17,7 +22,23 @@ const Inventory = () => {
         </div>
         <Link to="/inventory/new"><Button>Add Product</Button></Link>
       </header>
-      <div className="rounded-lg border p-6 text-muted-foreground">Data table coming soon.</div>
+      {isLoading ? (
+        <div className="rounded-lg border p-6 text-muted-foreground">Loading products…</div>
+      ) : (
+        <DataTable
+          columns={[
+            { key: "name", header: "Name" },
+            { key: "sku", header: "SKU" },
+            { key: "stock", header: "Stock", render: (v) => <span className={Number(v) === 0 ? 'text-destructive' : ''}>{v}</span> },
+            { key: "price", header: "Price", render: (v) => `$${Number(v).toFixed(2)}` },
+            { key: "expiry", header: "Expiry", render: (v) => (v ? formatDate(v) : '—') },
+            { key: "id", header: "Actions", render: (_v, row) => (
+              <Link to={`/inventory/${row.id}/edit`} className="underline underline-offset-4 text-primary">Edit</Link>
+            ) },
+          ]}
+          data={data}
+        />
+      )}
     </div>
   );
 };
