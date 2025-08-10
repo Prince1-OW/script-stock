@@ -1,13 +1,36 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { Helmet } from "react-helmet-async";
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 
 const Index = () => {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
-    </div>
+    <main className="min-h-[70vh] flex items-center justify-center bg-gradient-hero">
+      <Helmet>
+        <title>Pharmacy Management System</title>
+        <meta name="description" content="All-in-one pharmacy management: inventory, POS, prescriptions, and reports." />
+        <link rel="canonical" href="/" />
+        <script type="application/ld+json">{JSON.stringify({
+          '@context': 'https://schema.org',
+          '@type': 'SoftwareApplication',
+          name: 'Pharmacy Management System',
+          applicationCategory: 'BusinessApplication',
+          operatingSystem: 'Web',
+          description: 'Pharmacy inventory, POS, prescriptions, and reporting.'
+        })}</script>
+      </Helmet>
+      <section className="text-center space-y-6">
+        <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight">
+          Run your pharmacy with confidence
+        </h1>
+        <p className="text-lg text-muted-foreground max-w-xl mx-auto">
+          Inventory, POS, prescriptions, purchases, and reports — streamlined in one modern interface.
+        </p>
+        <div className="flex items-center justify-center gap-3">
+          <Link to="/dashboard"><Button variant="hero" size="lg">Open Dashboard</Button></Link>
+          <Link to="/inventory"><Button variant="secondary" size="lg">Explore Inventory</Button></Link>
+        </div>
+      </section>
+    </main>
   );
 };
 
