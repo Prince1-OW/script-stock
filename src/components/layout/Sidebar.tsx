@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { LayoutDashboard, Boxes, ScanLine, ShoppingCart, FileText, ClipboardList, BarChart3, Settings } from "lucide-react";
+import { LayoutDashboard, Boxes, ScanLine, ShoppingCart, ClipboardList, BarChart3, Settings } from "lucide-react";
 
 const navItemBase = "flex items-center gap-2 px-3 py-2 rounded-md transition-colors";
 
