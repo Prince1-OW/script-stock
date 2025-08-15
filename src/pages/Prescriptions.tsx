@@ -1,5 +1,6 @@
 import { Helmet } from "react-helmet-async";
 import PrescriptionUpload from "@/components/prescriptions/PrescriptionUpload";
+import PrescriptionList from "@/components/prescriptions/PrescriptionList";
 
 const Prescriptions = () => {
   return (
@@ -13,7 +14,10 @@ const Prescriptions = () => {
         <h1 className="text-2xl font-semibold">Prescriptions</h1>
         <p className="text-muted-foreground">Upload and manage prescriptions.</p>
       </header>
-      <PrescriptionUpload />
+      <div className="space-y-8">
+        <PrescriptionUpload />
+        <PrescriptionList />
+      </div>
     </div>
   );
 };
