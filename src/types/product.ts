@@ -1,9 +1,11 @@
 export type Product = {
   id: string;
+  user_id: string;
   name: string;
   sku: string;
-  price: number; // in major units
+  price: number;
   stock: number;
-  expiry?: string; // ISO date
-  createdAt: string; // ISO date
+  expiry?: string;
+  created_at: string;
+  updated_at: string;
 };

@@ -1,4 +1,5 @@
 import { Helmet } from "react-helmet-async";
+import PurchaseForm from "@/components/purchases/PurchaseForm";
 
 const PurchasesNew = () => {
   return (
@@ -12,7 +13,7 @@ const PurchasesNew = () => {
         <h1 className="text-2xl font-semibold">New Purchase</h1>
         <p className="text-muted-foreground">Enter supplier and items.</p>
       </header>
-      <div className="rounded-lg border p-6 text-muted-foreground">Form coming soon.</div>
+      <PurchaseForm />
     </div>
   );
 };
