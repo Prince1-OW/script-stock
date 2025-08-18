@@ -4,31 +4,100 @@ import { Button } from "@/components/ui/button";
 import { calculateTotals } from "@/utils/calculateTotals";
 import { SaleItem } from "@/types/sale";
 import BarcodeScanner from "@/components/pos/BarcodeScanner";
-
-const catalogBySku: Record<string, { productId: string; name: string; price: number }> = {
-  "PARA-500": { productId: "1", name: "Paracetamol 500mg", price: 2.5 },
-  "AMOX-250": { productId: "2", name: "Amoxicillin 250mg", price: 6.9 },
-  "VITC-1000": { productId: "3", name: "Vitamin C 1000mg", price: 4.2 },
-};
+import { useProducts } from "@/hooks/useProducts";
+import { useCreateSale } from "@/hooks/useSales";
+import { toast } from "sonner";
 
 const POS = () => {
-  const [items, setItems] = useState<SaleItem[]>([
-    { productId: "1", name: "Paracetamol 500mg", qty: 1, price: 2.5 },
-    { productId: "2", name: "Amoxicillin 250mg", qty: 2, price: 6.9 },
-  ]);
+  const { data: products = [], isLoading } = useProducts();
+  const createSale = useCreateSale();
+  const [items, setItems] = useState<SaleItem[]>([]);
 
   const onDetect = (code: string) => {
-    const p = catalogBySku[code.toUpperCase()];
-    if (!p) return;
+    const product = products.find(p => p.sku.toLowerCase() === code.toLowerCase());
+    if (!product) {
+      toast.error(`Product with SKU "${code}" not found`);
+      return;
+    }
+
+    if (product.stock <= 0) {
+      toast.error(`${product.name} is out of stock`);
+      return;
+    }
+
     setItems((cur) => {
-      const idx = cur.findIndex((c) => c.productId === p.productId);
+      const idx = cur.findIndex((c) => c.productId === product.id);
       if (idx >= 0) {
+        const currentQty = cur[idx].qty;
+        if (currentQty >= product.stock) {
+          toast.error(`Not enough stock for ${product.name}. Available: ${product.stock}`);
+          return cur;
+        }
         const clone = [...cur];
         clone[idx] = { ...clone[idx], qty: clone[idx].qty + 1 };
         return clone;
       }
-      return [...cur, { productId: p.productId, name: p.name, price: p.price, qty: 1 }];
+      return [...cur, { productId: product.id, name: product.name, price: product.price, qty: 1 }];
     });
+  };
+
+  const addProduct = (product: any) => {
+    if (product.stock <= 0) {
+      toast.error(`${product.name} is out of stock`);
+      return;
+    }
+
+    setItems((cur) => {
+      const idx = cur.findIndex((c) => c.productId === product.id);
+      if (idx >= 0) {
+        const currentQty = cur[idx].qty;
+        if (currentQty >= product.stock) {
+          toast.error(`Not enough stock for ${product.name}. Available: ${product.stock}`);
+          return cur;
+        }
+        const clone = [...cur];
+        clone[idx] = { ...clone[idx], qty: clone[idx].qty + 1 };
+        return clone;
+      }
+      return [...cur, { productId: product.id, name: product.name, price: Number(product.price), qty: 1 }];
+    });
+  };
+
+  const updateQuantity = (idx: number, newQty: number) => {
+    if (newQty < 1) return;
+    
+    const product = products.find(p => p.id === items[idx].productId);
+    if (product && newQty > product.stock) {
+      toast.error(`Not enough stock for ${product.name}. Available: ${product.stock}`);
+      return;
+    }
+
+    setItems(cur => cur.map((c, j) => j === idx ? { ...c, qty: newQty } : c));
+  };
+
+  const removeItem = (idx: number) => {
+    setItems(cur => cur.filter((_, j) => j !== idx));
+  };
+
+  const handleCheckout = async () => {
+    if (items.length === 0) {
+      toast.error("Cart is empty");
+      return;
+    }
+
+    try {
+      await createSale.mutateAsync({
+        items,
+        subtotal: totals.subtotal,
+        tax: totals.tax,
+        total: totals.total
+      });
+      
+      setItems([]);
+      toast.success("Sale completed successfully!");
+    } catch (error) {
+      console.error("Checkout failed:", error);
+    }
   };
 
   const totals = useMemo(() => calculateTotals(items), [items]);
@@ -45,24 +114,82 @@ const POS = () => {
         <p className="text-muted-foreground">Scan items and checkout.</p>
       </header>
 
-      <div className="grid gap-6 md:grid-cols-3">
-        <div className="md:col-span-2 space-y-4">
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2 space-y-4">
           <div className="rounded-lg border">
-            <div className="px-4 py-2 border-b font-medium">Cart</div>
-            <div className="divide-y">
-              {items.map((i, idx) => (
-                <div key={idx} className="flex items-center justify-between px-4 py-3">
-                  <div>
-                    <div className="font-medium">{i.name}</div>
-                    <div className="text-xs text-muted-foreground">Qty: {i.qty} • ${i.price.toFixed(2)}</div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button size="sm" variant="secondary" onClick={() => setItems(cur => cur.map((c, j) => j === idx ? { ...c, qty: Math.max(1, c.qty - 1) } : c))}>-</Button>
-                    <span className="w-6 text-center">{i.qty}</span>
-                    <Button size="sm" onClick={() => setItems(cur => cur.map((c, j) => j === idx ? { ...c, qty: c.qty + 1 } : c))}>+</Button>
-                  </div>
+            <div className="px-4 py-2 border-b font-medium">Cart ({items.length} items)</div>
+            <div className="divide-y max-h-64 overflow-y-auto">
+              {items.length === 0 ? (
+                <div className="px-4 py-8 text-center text-muted-foreground">
+                  No items in cart. Scan a product or add from the list below.
                 </div>
-              ))}
+              ) : (
+                items.map((i, idx) => (
+                  <div key={idx} className="flex items-center justify-between px-4 py-3">
+                    <div className="flex-1">
+                      <div className="font-medium">{i.name}</div>
+                      <div className="text-xs text-muted-foreground">
+                        ${i.price.toFixed(2)} each • Total: ${(i.price * i.qty).toFixed(2)}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button 
+                        size="sm" 
+                        variant="secondary" 
+                        onClick={() => updateQuantity(idx, i.qty - 1)}
+                        disabled={i.qty <= 1}
+                      >
+                        -
+                      </Button>
+                      <span className="w-8 text-center">{i.qty}</span>
+                      <Button 
+                        size="sm" 
+                        onClick={() => updateQuantity(idx, i.qty + 1)}
+                      >
+                        +
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="destructive" 
+                        onClick={() => removeItem(idx)}
+                      >
+                        ×
+                      </Button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          <div className="rounded-lg border">
+            <div className="px-4 py-2 border-b font-medium">Available Products</div>
+            <div className="p-4">
+              {isLoading ? (
+                <div className="text-center text-muted-foreground">Loading products...</div>
+              ) : products.length === 0 ? (
+                <div className="text-center text-muted-foreground">No products available</div>
+              ) : (
+                <div className="grid gap-2 max-h-48 overflow-y-auto">
+                  {products.map((product) => (
+                    <div 
+                      key={product.id} 
+                      className="flex items-center justify-between p-2 rounded border hover:bg-accent cursor-pointer"
+                      onClick={() => addProduct(product)}
+                    >
+                      <div>
+                        <div className="font-medium">{product.name}</div>
+                        <div className="text-xs text-muted-foreground">
+                          SKU: {product.sku} • Stock: {product.stock} • ${Number(product.price).toFixed(2)}
+                        </div>
+                      </div>
+                      <Button size="sm" disabled={product.stock <= 0}>
+                        {product.stock <= 0 ? "Out of Stock" : "Add"}
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
@@ -77,7 +204,15 @@ const POS = () => {
             <div className="flex justify-between py-1 text-sm"><span>Tax</span><span>${totals.tax.toFixed(2)}</span></div>
             <div className="flex justify-between py-2 text-lg font-semibold"><span>Total</span><span>${totals.total.toFixed(2)}</span></div>
           </div>
-          <Button size="lg" className="w-full" variant="hero">Checkout</Button>
+          <Button 
+            size="lg" 
+            className="w-full" 
+            variant="hero"
+            onClick={handleCheckout}
+            disabled={items.length === 0 || createSale.isPending}
+          >
+            {createSale.isPending ? "Processing..." : "Checkout"}
+          </Button>
         </div>
       </div>
     </div>
