@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      prescriptions: {
+        Row: {
+          created_at: string
+          doctor_name: string | null
+          file_name: string
+          file_path: string
+          id: string
+          linked_sale_id: string | null
+          notes: string | null
+          patient_name: string | null
+          status: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          doctor_name?: string | null
+          file_name: string
+          file_path: string
+          id?: string
+          linked_sale_id?: string | null
+          notes?: string | null
+          patient_name?: string | null
+          status?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          doctor_name?: string | null
+          file_name?: string
+          file_path?: string
+          id?: string
+          linked_sale_id?: string | null
+          notes?: string | null
+          patient_name?: string | null
+          status?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           created_at: string
@@ -177,6 +219,7 @@ export type Database = {
           created_at: string
           id: string
           payment_method: string | null
+          prescription_id: string | null
           sale_date: string
           subtotal_amount: number
           tax_amount: number
@@ -188,6 +231,7 @@ export type Database = {
           created_at?: string
           id?: string
           payment_method?: string | null
+          prescription_id?: string | null
           sale_date?: string
           subtotal_amount?: number
           tax_amount?: number
@@ -199,6 +243,7 @@ export type Database = {
           created_at?: string
           id?: string
           payment_method?: string | null
+          prescription_id?: string | null
           sale_date?: string
           subtotal_amount?: number
           tax_amount?: number
@@ -206,7 +251,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_sales_prescription"
+            columns: ["prescription_id"]
+            isOneToOne: false
+            referencedRelation: "prescriptions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       suppliers: {
         Row: {

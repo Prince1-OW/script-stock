@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import PrescriptionForm from "./PrescriptionForm";
 
 interface UploadFile {
   id: string;
@@ -13,6 +14,7 @@ interface UploadFile {
   status: 'pending' | 'uploading' | 'completed' | 'error';
   progress: number;
   error?: string;
+  filePath?: string;
 }
 
 const PrescriptionUpload = () => {
@@ -75,7 +77,12 @@ const PrescriptionUpload = () => {
       if (error) throw error;
 
       setFiles(prev => prev.map(f => 
-        f.id === uploadFile.id ? { ...f, status: 'completed', progress: 100 } : f
+        f.id === uploadFile.id ? { 
+          ...f, 
+          status: 'completed', 
+          progress: 100, 
+          filePath: fileName 
+        } : f
       ));
 
       toast({
@@ -172,7 +179,17 @@ const PrescriptionUpload = () => {
 
                   <div className="flex items-center gap-2">
                     {file.status === 'completed' && (
-                      <Check className="h-5 w-5 text-green-500" />
+                      <>
+                        <Check className="h-5 w-5 text-green-500" />
+                        <PrescriptionForm 
+                          fileName={file.file.name}
+                          filePath={file.filePath}
+                          onSuccess={() => {
+                            // Optionally refresh the prescription list
+                            // or show additional success feedback
+                          }}
+                        />
+                      </>
                     )}
                     
                     {file.status === 'pending' && (
