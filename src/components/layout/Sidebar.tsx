@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { LayoutDashboard, Boxes, ScanLine, ShoppingCart, ClipboardList, BarChart3, Settings, Plus } from "lucide-react";
+import { LayoutDashboard, Boxes, ScanLine, ShoppingCart, ClipboardList, BarChart3, Settings, Plus, Building2 } from "lucide-react";
 
 const navItemBase = "flex items-center gap-2 px-3 py-2 rounded-md transition-colors";
 
@@ -24,6 +24,9 @@ const Sidebar = () => {
         </NavLink>
         <NavLink to="/purchases/new" className={({ isActive }) => `${navItemBase} ${isActive ? 'bg-secondary text-secondary-foreground' : 'hover:bg-accent hover:text-accent-foreground'}`}>
           <Plus className="size-4" /> Add Purchase
+        </NavLink>
+        <NavLink to="/suppliers" className={({ isActive }) => `${navItemBase} ${isActive ? 'bg-secondary text-secondary-foreground' : 'hover:bg-accent hover:text-accent-foreground'}`}>
+          <Building2 className="size-4" /> Suppliers
         </NavLink>
         <NavLink to="/prescriptions" className={({ isActive }) => `${navItemBase} ${isActive ? 'bg-secondary text-secondary-foreground' : 'hover:bg-accent hover:text-accent-foreground'}`}>
           <ClipboardList className="size-4" /> Prescriptions

@@ -13,6 +13,8 @@ import InventoryNew from "./pages/InventoryNew";
 import InventoryEdit from "./pages/InventoryEdit";
 import Purchases from "./pages/Purchases";
 import PurchasesNew from "./pages/PurchasesNew";
+import Suppliers from "./pages/Suppliers";
+import SuppliersNew from "./pages/SuppliersNew";
 import POS from "./pages/POS";
 import Prescriptions from "./pages/Prescriptions";
 import Reports from "./pages/Reports";
@@ -36,6 +38,8 @@ const App = () => (
               <Route path="/inventory/:id/edit" element={<InventoryEdit />} />
               <Route path="/purchases" element={<Purchases />} />
               <Route path="/purchases/new" element={<PurchasesNew />} />
+              <Route path="/suppliers" element={<Suppliers />} />
+              <Route path="/suppliers/new" element={<SuppliersNew />} />
               <Route path="/pos" element={<POS />} />
               <Route path="/prescriptions" element={<Prescriptions />} />
               <Route path="/reports" element={<Reports />} />

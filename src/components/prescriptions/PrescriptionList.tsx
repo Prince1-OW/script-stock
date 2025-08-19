@@ -1,260 +1,153 @@
-import { useState, useEffect } from "react";
-import { Download, Trash2, Eye, Calendar } from "lucide-react";
+import { useState } from "react";
+import { Download, Trash2, Eye, Calendar, FileText, User, Stethoscope } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import DataTable from "@/components/common/DataTable";
+import { usePrescriptions } from "@/hooks/usePrescriptions";
 import { formatDate } from "@/utils/formatDate";
 
-interface PrescriptionFile {
-  id: string;
-  name: string;
-  metadata?: {
-    size?: number;
-  };
-  created_at: string;
-  updated_at: string;
-}
-
 const PrescriptionList = () => {
-  const [files, setFiles] = useState<PrescriptionFile[]>([]);
-  const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
+  const { data: prescriptions = [], isLoading } = usePrescriptions();
 
-  useEffect(() => {
-    fetchPrescriptions();
-  }, []);
-
-  const fetchPrescriptions = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data, error } = await supabase.storage
-        .from('prescriptions')
-        .list(user.id, {
-          limit: 100,
-          sortBy: { column: 'created_at', order: 'desc' }
-        });
-
-      if (error) throw error;
-
-      setFiles(data || []);
-    } catch (error: any) {
-      toast({
-        title: "Error loading prescriptions",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return <Badge variant="secondary">Pending</Badge>;
+      case 'processed':
+        return <Badge variant="default">Processed</Badge>;
+      case 'completed':
+        return <Badge variant="default">Completed</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
     }
   };
 
-  const downloadFile = async (fileName: string) => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data, error } = await supabase.storage
-        .from('prescriptions')
-        .download(`${user.id}/${fileName}`);
-
-      if (error) throw error;
-
-      const url = URL.createObjectURL(data);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-
-      toast({
-        title: "Download started",
-        description: `${fileName} is being downloaded.`,
-      });
-    } catch (error: any) {
-      toast({
-        title: "Download failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
-  };
-
-  const viewFile = async (fileName: string) => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data } = supabase.storage
-        .from('prescriptions')
-        .getPublicUrl(`${user.id}/${fileName}`);
-
-      // Open in new tab for viewing
-      window.open(data.publicUrl, '_blank');
-    } catch (error: any) {
-      toast({
-        title: "Error viewing file",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
-  };
-
-  const deleteFile = async (fileName: string) => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { error } = await supabase.storage
-        .from('prescriptions')
-        .remove([`${user.id}/${fileName}`]);
-
-      if (error) throw error;
-
-      setFiles(prev => prev.filter(f => f.name !== fileName));
-      
-      toast({
-        title: "File deleted",
-        description: `${fileName} has been deleted.`,
-      });
-    } catch (error: any) {
-      toast({
-        title: "Delete failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
-  };
-
-  const getFileType = (fileName: string) => {
-    const ext = fileName.split('.').pop()?.toLowerCase();
-    switch (ext) {
-      case 'pdf': return 'PDF';
-      case 'jpg':
-      case 'jpeg': return 'JPEG';
-      case 'png': return 'PNG';
-      default: return 'FILE';
-    }
-  };
-
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
-
-  if (loading) {
-    return (
-      <Card className="p-6">
-        <div className="text-center text-muted-foreground">
-          Loading prescriptions...
+  const columns = [
+    {
+      key: "file_name" as const,
+      header: "File Name",
+      render: (value: string) => (
+        <div className="flex items-center gap-2">
+          <FileText className="w-4 h-4 text-muted-foreground" />
+          <span className="font-medium">{value}</span>
         </div>
+      ),
+    },
+    {
+      key: "patient_name" as const,
+      header: "Patient",
+      render: (value: string) => value ? (
+        <div className="flex items-center gap-2">
+          <User className="w-4 h-4 text-muted-foreground" />
+          {value}
+        </div>
+      ) : "—",
+    },
+    {
+      key: "doctor_name" as const,
+      header: "Doctor",
+      render: (value: string) => value ? (
+        <div className="flex items-center gap-2">
+          <Stethoscope className="w-4 h-4 text-muted-foreground" />
+          {value}
+        </div>
+      ) : "—",
+    },
+    {
+      key: "status" as const,
+      header: "Status",
+      render: (value: string) => getStatusBadge(value),
+    },
+    {
+      key: "created_at" as const,
+      header: "Uploaded",
+      render: (value: string) => formatDate(value),
+    },
+    {
+      key: "actions" as const,
+      header: "Actions",
+      render: (value: any, prescription: any) => (
+        <div className="flex items-center gap-1">
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 w-8 p-0"
+            title="View prescription"
+          >
+            <Eye className="h-4 w-4" />
+          </Button>
+          
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                title="Delete prescription"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete Prescription</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to delete this prescription? This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => console.log('Delete prescription:', prescription.id)}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+      ),
+    },
+  ];
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <div className="text-center text-muted-foreground">Loading prescriptions...</div>
+        </CardContent>
       </Card>
     );
   }
 
-  if (files.length === 0) {
+  if (prescriptions.length === 0) {
     return (
-      <Card className="p-6">
-        <div className="text-center text-muted-foreground">
-          <Calendar className="mx-auto h-12 w-12 mb-4" />
-          <p>No prescriptions uploaded yet.</p>
-          <p className="text-sm">Upload your first prescription above.</p>
-        </div>
+      <Card>
+        <CardContent className="p-6 text-center">
+          <Calendar className="mx-auto h-12 w-12 mb-4 text-muted-foreground" />
+          <h3 className="font-medium mb-2">No prescriptions found</h3>
+          <p className="text-muted-foreground text-sm">
+            Upload your first prescription above to get started.
+          </p>
+        </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card className="p-6">
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="font-medium">Your Prescriptions ({files.length})</h3>
-          <Button
-            onClick={fetchPrescriptions}
-            variant="outline"
-            size="sm"
-          >
-            Refresh
-          </Button>
-        </div>
-
-        <div className="space-y-3">
-          {files.map((file) => (
-            <div key={file.id} className="flex items-center gap-4 p-4 border rounded-lg hover:bg-accent/50 transition-colors">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <p className="font-medium truncate">{file.name}</p>
-                  <Badge variant="secondary" className="text-xs">
-                    {getFileType(file.name)}
-                  </Badge>
-                </div>
-                <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                  <span>{formatFileSize(file.metadata?.size || 0)}</span>
-                  <span>Uploaded {formatDate(file.created_at)}</span>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Button
-                  onClick={() => viewFile(file.name)}
-                  size="sm"
-                  variant="outline"
-                  className="h-8 w-8 p-0"
-                >
-                  <Eye className="h-4 w-4" />
-                </Button>
-                
-                <Button
-                  onClick={() => downloadFile(file.name)}
-                  size="sm"
-                  variant="outline"
-                  className="h-8 w-8 p-0"
-                >
-                  <Download className="h-4 w-4" />
-                </Button>
-
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Delete prescription</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Are you sure you want to delete "{file.name}"? This action cannot be undone.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={() => deleteFile(file.name)}
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                      >
-                        Delete
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <FileText className="w-5 h-5" />
+          Prescription Records ({prescriptions.length})
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <DataTable data={prescriptions} columns={columns} />
+      </CardContent>
     </Card>
   );
 };
