@@ -1,5 +1,5 @@
 import { Helmet } from "react-helmet-async";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { calculateTotals } from "@/utils/calculateTotals";
 import { SaleItem } from "@/types/sale";
@@ -7,11 +7,38 @@ import BarcodeScanner from "@/components/pos/BarcodeScanner";
 import { useProducts } from "@/hooks/useProducts";
 import { useCreateSale } from "@/hooks/useSales";
 import { toast } from "sonner";
+import QuickAddProduct from "@/components/inventory/QuickAddProduct";
 
 const POS = () => {
   const { data: products = [], isLoading } = useProducts();
   const createSale = useCreateSale();
   const [items, setItems] = useState<SaleItem[]>([]);
+
+  // Keyboard shortcuts for faster POS operation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // F1 - Focus barcode input
+      if (e.key === 'F1') {
+        e.preventDefault();
+        const barcodeInput = document.querySelector('input[placeholder*="barcode"]') as HTMLInputElement;
+        barcodeInput?.focus();
+      }
+      // F2 - Checkout
+      if (e.key === 'F2' && items.length > 0) {
+        e.preventDefault();
+        handleCheckout();
+      }
+      // F3 - Clear cart
+      if (e.key === 'F3') {
+        e.preventDefault();
+        setItems([]);
+        toast.info("Cart cleared");
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [items.length]);
 
   const onDetect = (code: string) => {
     const product = products.find(p => p.sku.toLowerCase() === code.toLowerCase());
@@ -109,9 +136,14 @@ const POS = () => {
         <meta name="description" content="Point of sale with cart and checkout." />
         <link rel="canonical" href="/pos" />
       </Helmet>
-      <header className="mb-6">
-        <h1 className="text-2xl font-semibold">Point of Sale</h1>
-        <p className="text-muted-foreground">Scan items and checkout.</p>
+      <header className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold">Point of Sale</h1>
+          <p className="text-muted-foreground">
+            Scan items and checkout. Shortcuts: F1-Focus scanner, F2-Checkout, F3-Clear cart
+          </p>
+        </div>
+        <QuickAddProduct />
       </header>
 
       <div className="grid gap-6 lg:grid-cols-3">
